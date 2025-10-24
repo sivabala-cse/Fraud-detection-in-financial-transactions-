@@ -1,0 +1,69 @@
+# --------------------------------------------
+# FRAUD DETECTION IN FINANCIAL TRANSACTIONS
+# --------------------------------------------
+
+# Import libraries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+from sklearn.preprocessing import StandardScaler
+
+# Step 1: Load the dataset
+# Download dataset from: https://www.kaggle.com/mlg-ulb/creditcardfraud
+data = pd.read_csv("creditcard.csv")
+
+# Step 2: Explore data
+print("Dataset shape:", data.shape)
+print(data.head())
+print(data["Class"].value_counts())
+
+# Step 3: Check missing values
+print("\nMissing values:\n", data.isnull().sum().any())
+
+# Step 4: Data scaling
+scaler = StandardScaler()
+data["scaled_amount"] = scaler.fit_transform(data["Amount"].values.reshape(-1,1))
+data["scaled_time"] = scaler.fit_transform(data["Time"].values.reshape(-1,1))
+
+# Drop original columns
+data = data.drop(["Time", "Amount"], axis=1)
+
+# Rearrange columns
+scaled_amount = data["scaled_amount"]
+scaled_time = data["scaled_time"]
+data.drop(["scaled_amount", "scaled_time"], axis=1, inplace=True)
+data.insert(0, "scaled_amount", scaled_amount)
+data.insert(1, "scaled_time", scaled_time)
+
+# Step 5: Split data into features and target
+X = data.drop("Class", axis=1)
+y = data["Class"]
+
+# Step 6: Split into train and test sets
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42, stratify=y
+)
+
+# Step 7: Train model
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Step 8: Make predictions
+y_pred = model.predict(X_test)
+
+# Step 9: Evaluate the model
+print("\nAccuracy:", accuracy_score(y_test, y_pred))
+print("\nConfusion Matrix:\n", confusion_matrix(y_test, y_pred))
+print("\nClassification Report:\n", classification_report(y_test, y_pred))
+
+# Step 10: Visualize Confusion Matrix
+plt.figure(figsize=(6,4))
+sns.heatmap(confusion_matrix(y_test, y_pred), annot=True, fmt='d', cmap='Blues')
+plt.title("Confusion Matrix - Fraud Detection")
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
+plt.show()
